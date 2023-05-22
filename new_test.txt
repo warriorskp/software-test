@@ -1,0 +1,64 @@
+from flask import Flask, abort, jsonify, request
+
+from tasks import tasks
+
+
+app = Flask(__name__)
+app.config['JSON_SORT_KEYS'] = False
+
+
+@app.route('/tasks')
+def tasks_():
+    return jsonify(tasks)
+
+
+@app.route('/add_task', methods=['POST'])
+def add_task():
+    json_data = request.get_json()
+    title = json_data.get('title')
+    description = json_data.get('description')
+    if title is None or description is None:
+        abort(400)
+    new_task = {
+        'id': tasks[-1]['id'] + 1,
+        'title': title,
+        'description': description,
+        'done': False
+    }
+    tasks.append(new_task)
+    return new_task
+
+
+@app.route('/delete_task/<int:task_id>', methods=['DELETE'])
+def delete_task(task_id):
+    for task in tasks:
+        if task['id'] == task_id:
+            tasks.remove(task)
+            return jsonify(success=True)
+    abort(404)
+
+
+@app.route('/update_task/<int:task_id>', methods=['PATCH'])
+def update_task(task_id):
+    json_data = request.get_json()
+    description = json_data.get('description')
+    if description is None:
+        abort(400)
+    for task in tasks:
+        if task['id'] == task_id:
+            task['description'] = description
+            return jsonify(success=True)
+    abort(404)
+
+
+@app.route('/mark_as_complete/<int:task_id>', methods=['PATCH'])
+def mark_as_complete(task_id):
+    for task in tasks:
+        if task['id'] == task_id:
+            task['done'] = True
+            return jsonify(success=True)
+    abort(404)
+
+
+if __name__ == '__main__':
+    app.run(debug=True)
